@@ -4,7 +4,7 @@ import os
 import traceback
 import pyscreenshot as image_grab
 from tuyapy import TuyaApi
-
+import _thread
 from colorthief import ColorThief
 
 api = TuyaApi()
@@ -24,7 +24,7 @@ def turn_on(device):
         return [i.turn_on() for i in device]
 
 
-def change_color(device, r, g, b):
+def change_color(device_list, r, g, b):
     # Manually adjusting for black white and gray
     h, s, v = rgb_to_hsv(r, g, b)
     if v < 5 or s < 10:
@@ -32,7 +32,7 @@ def change_color(device, r, g, b):
         h = 210
         s = 4
         v = 19
-    change_color_from_hsv(device, h, s, v)
+    change_color_from_hsv(device_list, h, s, v)
 
 
 def change_color_from_rgb(device, r, g, b):
@@ -42,12 +42,15 @@ def change_color_from_rgb(device, r, g, b):
         return [i.set_color(rgb_to_hsv(r, g, b)) for i in device]
 
 
-def change_color_from_hsv(device, h, s, v):
-    if not isinstance(device, list):
-        return device.set_color((h, s, v))
+def change_color_from_hsv(device_list, h, s, v):
+    if not isinstance(device_list, list):
+        return device_list.set_color((h, s, v))
     else:
-        return [i.set_color((h, s, v)) for i in device]
+        for device in device_list:
+            _thread.start_new_thread(sync_lights,(device,h,s,v)) #else lights will change one by one
 
+def sync_lights(device,h,s,v):
+    return device.set_color((h, s, v))
 
 def rgb_to_hsv(r, g, b):
     # Reference: https://www.w3resource.com/python-exercises/math/python-math-exercise-77.php
